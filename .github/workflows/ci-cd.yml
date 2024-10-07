@@ -1,0 +1,53 @@
+name: MERN CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install Dependencies
+        run: npm install
+        working-directory: ./backend
+
+      - name: Test Backend
+        run: npm test
+        working-directory: ./backend
+
+      - name: Build Frontend
+        run: npm run build
+        working-directory: ./frontend
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v0.1.4
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            cd /path/to/your/app
+            git pull origin main
+            npm install --prefix backend
+            npm install --prefix frontend
+            npm run build --prefix frontend
+            pm2 restart all
